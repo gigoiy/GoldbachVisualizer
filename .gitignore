@@ -5,5 +5,5 @@ build/
 dist/
 *.spec
 .vscode/
-!dist/your_app_name.exe
+!dist/goldbach_plot.exe
 
