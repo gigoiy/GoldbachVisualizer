@@ -5,6 +5,15 @@ import os
 import sys
 import traceback
 
+'''
+Goldbach's Conjecture 3D Visualization
+
+To-Do's:
+    - Add dynamic axis
+    - Add line toggling
+    - Create a GUI
+'''
+
 def create_directory(path):
     """Create directory if it doesn't exist with error handling"""
     try:
@@ -63,10 +72,16 @@ def sieve_of_eratosthenes(limit: int):
 def goldbachs_calculation(primelist):
     coords = []
     try:
+        # Only generate unique prime pairs (prime1 <= prime2)
         for i in range(len(primelist)):
-            mainprime = primelist[i]
-            for j in range(len(primelist)):
-                coords.append((mainprime, mainprime + primelist[j], j))
+            prime1 = primelist[i]
+            # Start j from i to ensure prime1 <= prime2
+            for j in range(i, len(primelist)):
+                prime2 = primelist[j]
+                y_sum = prime1 + prime2
+                # Only include coordinates where the sum is even
+                if y_sum % 2 == 0:
+                    coords.append((prime1, y_sum, prime2))
     except Exception as e:
         print(f"Error in Goldbach calculation: {str(e)}")
         traceback.print_exc()
@@ -77,9 +92,11 @@ def shared_factors(coordinates):
     try:
         for coord in coordinates:
             x, y, z = coord
-            if y not in y_groups:
-                y_groups[y] = []
-            y_groups[y].append(coord)
+            # Only group even sums (should already be filtered, but double-check)
+            if y % 2 == 0:
+                if y not in y_groups:
+                    y_groups[y] = []
+                y_groups[y].append(coord)
     except Exception as e:
         print(f"Error in grouping coordinates: {str(e)}")
         traceback.print_exc()
@@ -105,11 +122,12 @@ def main():
         if not primes:
             print("No primes generated. Please check your input value.")
             return
-            
+        
         coords = goldbachs_calculation(primes)
+        print(f"Generated {len(coords)} unique prime pairs with even sums")
         
         # === 1. Generate Table ===
-        df = pd.DataFrame(coords, columns=['X (Prime 1)', 'Y (Sum)', 'Z (Index of Prime 2)'])
+        df = pd.DataFrame(coords, columns=['X (Prime 1)', 'Y (Sum)', 'Z (Prime 2)'])
         print(df.head(10))  # Preview first 10 rows
         
         # Create directories and save files with error handling
@@ -125,10 +143,10 @@ def main():
         fig.add_trace(go.Scatter3d(
             x=df['X (Prime 1)'],
             y=df['Y (Sum)'],
-            z=df['Z (Index of Prime 2)'],
+            z=df['Z (Prime 2)'],
             mode='markers',
             marker=dict(size=3, color='red'),
-            text=[f"X: {x}, Y: {y}, Z: {z}" for x, y, z in coords],
+            text=[f"Prime1: {x}, Sum: {y}, Prime2: {z}" for x, y, z in coords],
             hoverinfo='text'
         ))
 
@@ -149,11 +167,11 @@ def main():
 
         # Layout
         fig.update_layout(
-            title="Goldbach's Prime Table (Interactive)",
+            title="Goldbach's Prime Table (Unique Pairs, Even Sums)",
             scene=dict(
                 xaxis_title='Prime 1 (X)',
                 yaxis_title='Sum (Y)',
-                zaxis_title='Index of Prime 2 (Z)'
+                zaxis_title='Prime 2 (Z)'
             ),
             width=900,
             height=700,
