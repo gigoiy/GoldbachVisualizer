@@ -12,7 +12,9 @@ To-Do's:
     - Add dynamic axis
     - Add line toggling
     - Create a GUI
-'''
+    - Add ability to save multiple files 
+    - Change limit to sum not primes
+''' 
 
 def create_directory(path):
     """Create directory if it doesn't exist with error handling"""
