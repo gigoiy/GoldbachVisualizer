@@ -1,10 +1,10 @@
 import pandas as pd
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 from plotly.offline import plot
+import os
 
-'''
-Goldbach's Prime Table Algorithm
-'''
+# Goldbach's Prime Table Algorithm
+
 
 def sieve_of_eratosthenes(limit: int):
     primes = []
@@ -48,7 +48,7 @@ coords = goldbachs_calculation(primes)
 # === 1. Generate Table ===
 df = pd.DataFrame(coords, columns=['X (Prime 1)', 'Y (Sum)', 'Z (Index of Prime 2)'])
 print(df.head(10))  # Preview first 10 rows
-df.to_csv("goldbach_coords.csv", index=False)
+df.to_csv('assets/csv/goldbach_coords.csv', index=False)
 
 # === 2. Interactive 3D Scatter Plot with Hover Labels ===
 fig = go.Figure()
@@ -91,6 +91,13 @@ fig.update_layout(
     height=700,
     showlegend=False
 )
+
+# Set output path
+output_dir = "assets/plot"
+output_file = "goldbach_plot.html"
+full_path = os.path.join(output_dir, output_file)
+
+fig.write_html(full_path)
 
 # Show plot in browser
 plot(fig)

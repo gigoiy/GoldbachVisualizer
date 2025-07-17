@@ -1,6 +1,9 @@
-.venv/
 __pycache__/
 *.pyc
-dist/
+.venv/
 build/
+dist/
 *.spec
+.vscode/
+!dist/your_app_name.exe
+
