@@ -13,10 +13,9 @@ Goldbach's Conjecture 3D Visualization with GUI
 To-Do's:
     - Implement additional graph mode that has one axis being the numbered place of the prime in the list of primes and another axis the even sums
     - Implement another variable that displays the number of duplicates per even sum
-    - Complete axis swapping functionality
 '''
 
-# Helper functions remain the same until main()
+# Helper functions remain the same until shared_factors()
 
 def create_directory(path):
     """Create directory if it doesn't exist with error handling"""
@@ -257,6 +256,52 @@ class GoldbachGUI:
             self.status_var.set(f"Plot saved to {self.html_path.get()}")
             messagebox.showinfo("Success", "Plot saved successfully!")
     
+    def transform_coordinates(self, coords):
+        """Transform coordinates based on axis assignments"""
+        axis_map = {
+            "Prime1": 0,
+            "Sum": 1,
+            "Prime2": 2
+        }
+        
+        # Get the current axis assignments
+        x_assign = axis_map[self.x_axis.get()]
+        y_assign = axis_map[self.y_axis.get()]
+        z_assign = axis_map[self.z_axis.get()]
+        
+        # Transform each coordinate
+        transformed = []
+        for coord in coords:
+            transformed.append((
+                coord[x_assign],  # X value
+                coord[y_assign],  # Y value
+                coord[z_assign]   # Z value
+            ))
+        return transformed
+    
+    def transform_group_coordinates(self, group):
+        """Transform group coordinates while maintaining grouping by Sum"""
+        axis_map = {
+            "Prime1": 0,
+            "Sum": 1,
+            "Prime2": 2
+        }
+        
+        # Get the current axis assignments
+        x_assign = axis_map[self.x_axis.get()]
+        y_assign = axis_map[self.y_axis.get()]
+        z_assign = axis_map[self.z_axis.get()]
+        
+        # Transform each coordinate in the group
+        transformed = []
+        for coord in group:
+            transformed.append((
+                coord[x_assign],  # X value
+                coord[y_assign],  # Y value
+                coord[z_assign]   # Z value
+            ))
+        return transformed
+    
     def generate(self):
         """Main function to generate the visualization"""
         try:
@@ -279,14 +324,17 @@ class GoldbachGUI:
             self.root.update()
             coords = goldbachs_calculation(primes, sum_limit_val)
             
-            # Create DataFrame
-            self.df = pd.DataFrame(coords, columns=['X (Prime 1)', 'Y (Sum)', 'Z (Prime 2)'])
+            # Create DataFrame with original coordinates
+            self.df = pd.DataFrame(coords, columns=['Prime1', 'Sum', 'Prime2'])
             
             # Save CSV
             if not create_directory(os.path.dirname(self.csv_path.get())):
                 return
             if not save_dataframe(self.df, self.csv_path.get()):
                 return
+            
+            # Transform coordinates based on axis assignments
+            transformed_coords = self.transform_coordinates(coords)
             
             # Create visualization
             self.status_var.set("Creating 3D visualization...")
@@ -297,9 +345,9 @@ class GoldbachGUI:
 
             # Add scatter points with hover tooltips
             self.fig.add_trace(go.Scatter3d(
-                x=self.df['X (Prime 1)'],
-                y=self.df['Y (Sum)'],
-                z=self.df['Z (Prime 2)'],
+                x=[c[0] for c in transformed_coords],
+                y=[c[1] for c in transformed_coords],
+                z=[c[2] for c in transformed_coords],
                 mode='markers',
                 marker=dict(size=3, color='red'),
                 text=[f"Prime1: {x}, Sum: {y}, Prime2: {z}" for x, y, z in coords],
@@ -309,11 +357,17 @@ class GoldbachGUI:
 
             # Add lines if enabled
             if self.show_lines.get():
-                for group in shared_factors(coords).values():
+                groups = shared_factors(coords).values()
+                for group in groups:
                     if len(group) > 1:
-                        for i in range(len(group) - 1):
-                            p1 = group[i]
-                            p2 = group[i + 1]
+                        # Transform group coordinates while maintaining grouping
+                        transformed_group = self.transform_group_coordinates(group)
+                        
+                        # Create connections between consecutive points in the group
+                        for i in range(len(transformed_group) - 1):
+                            p1 = transformed_group[i]
+                            p2 = transformed_group[i + 1]
+                            
                             self.fig.add_trace(go.Scatter3d(
                                 x=[p1[0], p2[0]],
                                 y=[p1[1], p2[1]],
@@ -324,7 +378,7 @@ class GoldbachGUI:
                                 name="Connections"
                             ))
 
-            # Layout
+            # Layout with axis titles based on user selection
             self.fig.update_layout(
                 title=f"Goldbach's Prime Table (Sums ≤ {sum_limit_val})",
                 scene=dict(
