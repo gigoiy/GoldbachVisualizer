@@ -10,11 +10,11 @@ Goldbach's Conjecture 3D Visualization
 
 To-Do's:
     - Add dynamic axis
-    - Add line toggling
+    - Add line toggling 
     - Create a GUI
-    - Add ability to save multiple files 
-    - Change limit to sum not primes
-''' 
+    - Add a function that counts the number of duplicates per sum
+    - Graph mode that makes the coordinates the order place number of the primes in the prime list paired with the sums
+'''
 
 def create_directory(path):
     """Create directory if it doesn't exist with error handling"""
@@ -71,7 +71,7 @@ def sieve_of_eratosthenes(limit: int):
     
     return primes
 
-def goldbachs_calculation(primelist):
+def goldbachs_calculation(primelist, max_sum):
     coords = []
     try:
         # Only generate unique prime pairs (prime1 <= prime2)
@@ -81,8 +81,8 @@ def goldbachs_calculation(primelist):
             for j in range(i, len(primelist)):
                 prime2 = primelist[j]
                 y_sum = prime1 + prime2
-                # Only include coordinates where the sum is even
-                if y_sum % 2 == 0:
+                # Only include coordinates where sum is even and <= max_sum
+                if y_sum % 2 == 0 and y_sum <= max_sum:
                     coords.append((prime1, y_sum, prime2))
     except Exception as e:
         print(f"Error in Goldbach calculation: {str(e)}")
@@ -104,6 +104,40 @@ def shared_factors(coordinates):
         traceback.print_exc()
     return y_groups
 
+def get_save_paths(default_dir):
+    """Prompt user for save directory and filenames"""
+    # Get save directory
+    save_dir = input(f"Enter directory to save files (default: {default_dir}): ").strip()
+    save_dir = save_dir or default_dir
+    
+    # Create directory if needed
+    if not create_directory(save_dir):
+        print(f"Could not create directory: {save_dir}")
+        return None, None
+    
+    # Get base filename
+    base_name = input("Enter base filename (without extension): ").strip()
+    if not base_name:
+        print("Filename cannot be empty!")
+        return None, None
+    
+    # Build full paths
+    if save_dir == default_dir:
+        csv_path = os.path.join(f"{save_dir}/csv", f"{base_name}.csv")
+        html_path = os.path.join(f"{save_dir}/plot", f"{base_name}.html")
+    else:
+        csv_path = os.path.join(save_dir, f"{base_name}.csv")
+        html_path = os.path.join(save_dir, f"{base_name}.html")
+    
+    # Check for existing files
+    if os.path.exists(csv_path) or os.path.exists(html_path):
+        overwrite = input("Files already exist. Overwrite? (y/n): ").lower()
+        if overwrite != 'y':
+            print("Operation canceled by user")
+            return None, None
+    
+    return csv_path, html_path
+
 def main():
     # Get base directory path
     if getattr(sys, 'frozen', False):
@@ -111,30 +145,34 @@ def main():
     else:
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     
-    # Define output paths
-    csv_dir = os.path.join(BASE_DIR, "assets", "csv")
-    plot_dir = os.path.join(BASE_DIR, "assets", "plot")
-    csv_path = os.path.join(csv_dir, "goldbach_coords.csv")
-    plot_path = os.path.join(plot_dir, "goldbach_plot.html")
+    # Define default output paths
+    default_dir = os.path.join(BASE_DIR, "assets")
     
     try:
-        primelimit = input("Enter the prime limit: ")
-        primes = sieve_of_eratosthenes(primelimit)
+        # Ask for sum limit
+        sum_limit = int(input("Enter the maximum sum (even number): "))
+        
+        # Generate primes up to the sum limit
+        primes = sieve_of_eratosthenes(sum_limit)
         
         if not primes:
             print("No primes generated. Please check your input value.")
             return
         
-        coords = goldbachs_calculation(primes)
-        print(f"Generated {len(coords)} unique prime pairs with even sums")
+        # Generate Goldbach pairs
+        coords = goldbachs_calculation(primes, sum_limit)
+        print(f"Generated {len(coords)} unique prime pairs with even sums ≤ {sum_limit}")
         
         # === 1. Generate Table ===
         df = pd.DataFrame(coords, columns=['X (Prime 1)', 'Y (Sum)', 'Z (Prime 2)'])
         print(df.head(10))  # Preview first 10 rows
         
-        # Create directories and save files with error handling
-        if not create_directory(csv_dir):
+        # Get save paths from user
+        csv_path, plot_path = get_save_paths(default_dir)
+        if not csv_path or not plot_path:
             return
+            
+        # Save CSV file
         if not save_dataframe(df, csv_path):
             return
             
@@ -169,7 +207,7 @@ def main():
 
         # Layout
         fig.update_layout(
-            title="Goldbach's Prime Table (Unique Pairs, Even Sums)",
+            title=f"Goldbach's Prime Table (Sums ≤ {sum_limit})",
             scene=dict(
                 xaxis_title='Prime 1 (X)',
                 yaxis_title='Sum (Y)',
@@ -180,9 +218,7 @@ def main():
             showlegend=False
         )
         
-        # Create directories and save plot
-        if not create_directory(plot_dir):
-            return
+        # Save plot
         if not save_plot(fig, plot_path):
             return
 
