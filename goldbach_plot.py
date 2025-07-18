@@ -6,13 +6,17 @@ import sys
 import traceback
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+import numpy as np
+from collections import defaultdict
 
 '''
-Goldbach's Conjecture 3D Visualization with GUI
+Goldbach's Conjecture Visualization Tool
 
-To-Do's:
-    - Implement additional graph mode that has one axis being the numbered place of the prime in the list of primes and another axis the even sums
-    - Implement another variable that displays the number of duplicates per even sum
+Features:
+- All variables available for any axis
+- 2D and 3D visualization options
+- Hover statistics showing all variables
+- Line connections between points with same sum
 '''
 
 # Helper functions remain the same until shared_factors()
@@ -90,25 +94,44 @@ def goldbachs_calculation(primelist, max_sum):
         traceback.print_exc()
     return coords
 
-def shared_factors(coordinates):
-    y_groups = {}
+def enhance_coordinates(coords, primes):
+    """Enhance coordinates with index positions and duplicate counts"""
+    # Create prime to index mapping
+    prime_to_index = {p: i+1 for i, p in enumerate(primes)}
+    
+    # Count duplicates per sum
+    sum_counts = defaultdict(int)
+    for p1, s, p2 in coords:
+        sum_counts[s] += 1
+    
+    # Create enhanced coordinates
+    enhanced = []
+    for p1, s, p2 in coords:
+        index1 = prime_to_index[p1]
+        index2 = prime_to_index[p2]
+        dup_count = sum_counts[s]
+        enhanced.append((p1, p2, s, index1, index2, dup_count))
+    
+    return enhanced
+
+def group_by_sum(enhanced_coords):
+    """Group coordinates by sum value"""
+    groups = {}
     try:
-        for coord in coordinates:
-            x, y, z = coord
-            # Only group even sums (should already be filtered, but double-check)
-            if y % 2 == 0:
-                if y not in y_groups:
-                    y_groups[y] = []
-                y_groups[y].append(coord)
+        for coord in enhanced_coords:
+            s = coord[2]  # Sum is at index 2
+            if s not in groups:
+                groups[s] = []
+            groups[s].append(coord)
     except Exception as e:
         print(f"Error in grouping coordinates: {str(e)}")
         traceback.print_exc()
-    return y_groups
+    return groups
 
 class GoldbachGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Goldbach Conjecture 3D Visualizer")
+        self.root.title("Goldbach Conjecture Visualizer")
         self.root.geometry("600x500")
         self.root.resizable(True, True)
         
@@ -117,10 +140,13 @@ class GoldbachGUI:
         self.csv_path = tk.StringVar()
         self.html_path = tk.StringVar()
         self.show_lines = tk.BooleanVar(value=True)
-        self.graph_mode = tk.StringVar(value="Standard")
+        self.dimensions = tk.StringVar(value="3D")
         self.x_axis = tk.StringVar(value="Prime1")
         self.y_axis = tk.StringVar(value="Sum")
         self.z_axis = tk.StringVar(value="Prime2")
+        
+        # Available variables for axes
+        self.axis_vars = ["Prime1", "Prime2", "Sum", "Index1", "Index2", "DuplicateCount"]
         
         # Create main frame
         main_frame = ttk.Frame(root, padding="20")
@@ -137,10 +163,12 @@ class GoldbachGUI:
         ttk.Label(input_frame, text="Maximum Sum (even number):").grid(row=0, column=0, sticky=tk.W, pady=5)
         ttk.Entry(input_frame, textvariable=self.sum_limit, width=10).grid(row=0, column=1, sticky=tk.W, pady=5)
         
-        ttk.Label(input_frame, text="Graph Mode:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        mode_combobox = ttk.Combobox(input_frame, textvariable=self.graph_mode, state="readonly")
-        mode_combobox['values'] = ("Standard", "Enhanced", "Prime Density")  # Placeholder for future modes
-        mode_combobox.grid(row=1, column=1, sticky=tk.W, pady=5)
+        # Dimensions
+        ttk.Label(input_frame, text="Dimensions:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        dim_combobox = ttk.Combobox(input_frame, textvariable=self.dimensions, state="readonly", width=8)
+        dim_combobox['values'] = ("2D", "3D")
+        dim_combobox.grid(row=1, column=1, sticky=tk.W, pady=5)
+        dim_combobox.bind("<<ComboboxSelected>>", self.toggle_z_axis)
         
         # Visualization options
         ttk.Label(input_frame, text="Visualization Options:").grid(row=2, column=0, sticky=tk.W, pady=10)
@@ -153,19 +181,19 @@ class GoldbachGUI:
         axis_frame.grid(row=4, column=0, columnspan=2, sticky=tk.W+tk.E, pady=10)
         
         ttk.Label(axis_frame, text="X Axis:").grid(row=0, column=0, padx=5)
-        x_combobox = ttk.Combobox(axis_frame, textvariable=self.x_axis, width=10, state="readonly")
-        x_combobox['values'] = ("Prime1", "Sum", "Prime2")
-        x_combobox.grid(row=0, column=1, padx=5)
+        self.x_combobox = ttk.Combobox(axis_frame, textvariable=self.x_axis, width=15, state="readonly")
+        self.x_combobox['values'] = self.axis_vars
+        self.x_combobox.grid(row=0, column=1, padx=5)
         
         ttk.Label(axis_frame, text="Y Axis:").grid(row=1, column=0, padx=5, pady=5)
-        y_combobox = ttk.Combobox(axis_frame, textvariable=self.y_axis, width=10, state="readonly")
-        y_combobox['values'] = ("Prime1", "Sum", "Prime2")
-        y_combobox.grid(row=1, column=1, padx=5, pady=5)
+        self.y_combobox = ttk.Combobox(axis_frame, textvariable=self.y_axis, width=15, state="readonly")
+        self.y_combobox['values'] = self.axis_vars
+        self.y_combobox.grid(row=1, column=1, padx=5, pady=5)
         
         ttk.Label(axis_frame, text="Z Axis:").grid(row=2, column=0, padx=5)
-        z_combobox = ttk.Combobox(axis_frame, textvariable=self.z_axis, width=10, state="readonly")
-        z_combobox['values'] = ("Prime1", "Sum", "Prime2")
-        z_combobox.grid(row=2, column=1, padx=5)
+        self.z_combobox = ttk.Combobox(axis_frame, textvariable=self.z_axis, width=15, state="readonly")
+        self.z_combobox['values'] = self.axis_vars
+        self.z_combobox.grid(row=2, column=1, padx=5)
         
         # Output tab
         output_frame = ttk.Frame(notebook, padding="10")
@@ -196,6 +224,7 @@ class GoldbachGUI:
         
         # Set default save paths
         self.set_default_paths()
+        self.toggle_z_axis()
     
     def set_default_paths(self):
         """Set default save paths based on current directory"""
@@ -207,6 +236,13 @@ class GoldbachGUI:
         default_dir = os.path.join(BASE_DIR, "assets")
         self.csv_path.set(os.path.join(default_dir, "goldbach_coords.csv"))
         self.html_path.set(os.path.join(default_dir, "goldbach_plot.html"))
+    
+    def toggle_z_axis(self, event=None):
+        """Show or hide Z axis based on dimensions selection"""
+        if self.dimensions.get() == "2D":
+            self.z_combobox.config(state='disabled')
+        else:
+            self.z_combobox.config(state='readonly')
     
     def select_csv_path(self):
         """Select CSV save path using file dialog"""
@@ -260,46 +296,52 @@ class GoldbachGUI:
         """Transform coordinates based on axis assignments"""
         axis_map = {
             "Prime1": 0,
-            "Sum": 1,
-            "Prime2": 2
+            "Prime2": 1,
+            "Sum": 2,
+            "Index1": 3,
+            "Index2": 4,
+            "DuplicateCount": 5
         }
         
         # Get the current axis assignments
         x_assign = axis_map[self.x_axis.get()]
         y_assign = axis_map[self.y_axis.get()]
-        z_assign = axis_map[self.z_axis.get()]
+        z_assign = axis_map[self.z_axis.get()] if self.dimensions.get() == "3D" else None
         
         # Transform each coordinate
         transformed = []
         for coord in coords:
-            transformed.append((
-                coord[x_assign],  # X value
-                coord[y_assign],  # Y value
-                coord[z_assign]   # Z value
-            ))
+            x_val = coord[x_assign]
+            y_val = coord[y_assign]
+            z_val = coord[z_assign] if z_assign is not None else 0
+            
+            transformed.append((x_val, y_val, z_val))
         return transformed
     
     def transform_group_coordinates(self, group):
         """Transform group coordinates while maintaining grouping by Sum"""
         axis_map = {
             "Prime1": 0,
-            "Sum": 1,
-            "Prime2": 2
+            "Prime2": 1,
+            "Sum": 2,
+            "Index1": 3,
+            "Index2": 4,
+            "DuplicateCount": 5
         }
         
         # Get the current axis assignments
         x_assign = axis_map[self.x_axis.get()]
         y_assign = axis_map[self.y_axis.get()]
-        z_assign = axis_map[self.z_axis.get()]
+        z_assign = axis_map[self.z_axis.get()] if self.dimensions.get() == "3D" else None
         
         # Transform each coordinate in the group
         transformed = []
         for coord in group:
-            transformed.append((
-                coord[x_assign],  # X value
-                coord[y_assign],  # Y value
-                coord[z_assign]   # Z value
-            ))
+            x_val = coord[x_assign]
+            y_val = coord[y_assign]
+            z_val = coord[z_assign] if z_assign is not None else 0
+            
+            transformed.append((x_val, y_val, z_val))
         return transformed
     
     def generate(self):
@@ -310,6 +352,7 @@ class GoldbachGUI:
             
             # Get parameters from UI
             sum_limit_val = self.sum_limit.get()
+            dimensions = self.dimensions.get()
             
             # Generate primes up to the sum limit
             primes = sieve_of_eratosthenes(sum_limit_val)
@@ -324,8 +367,12 @@ class GoldbachGUI:
             self.root.update()
             coords = goldbachs_calculation(primes, sum_limit_val)
             
-            # Create DataFrame with original coordinates
-            self.df = pd.DataFrame(coords, columns=['Prime1', 'Sum', 'Prime2'])
+            # Enhance coordinates with index positions and duplicate counts
+            enhanced_coords = enhance_coordinates(coords, primes)
+            
+            # Create DataFrame with enhanced coordinates
+            self.df = pd.DataFrame(enhanced_coords, 
+                                  columns=['Prime1', 'Prime2', 'Sum', 'Index1', 'Index2', 'DuplicateCount'])
             
             # Save CSV
             if not create_directory(os.path.dirname(self.csv_path.get())):
@@ -334,33 +381,53 @@ class GoldbachGUI:
                 return
             
             # Transform coordinates based on axis assignments
-            transformed_coords = self.transform_coordinates(coords)
+            transformed_coords = self.transform_coordinates(enhanced_coords)
             
             # Create visualization
-            self.status_var.set("Creating 3D visualization...")
+            self.status_var.set("Creating visualization...")
             self.root.update()
             
             # Create figure
             self.fig = go.Figure()
-
-            # Add scatter points with hover tooltips
-            self.fig.add_trace(go.Scatter3d(
-                x=[c[0] for c in transformed_coords],
-                y=[c[1] for c in transformed_coords],
-                z=[c[2] for c in transformed_coords],
-                mode='markers',
-                marker=dict(size=3, color='red'),
-                text=[f"Prime1: {x}, Sum: {y}, Prime2: {z}" for x, y, z in coords],
-                hoverinfo='text',
-                name="Prime Pairs"
-            ))
-
+            
+            # Generate hover text with all variables
+            hover_texts = []
+            for c in enhanced_coords:
+                text = (f"Prime1: {c[0]}<br>Prime2: {c[1]}<br>Sum: {c[2]}<br>"
+                        f"Index1: {c[3]}<br>Index2: {c[4]}<br>Duplicates: {c[5]}")
+                hover_texts.append(text)
+            
+            # Add scatter points
+            if dimensions == "3D":
+                # 3D Scatter plot
+                self.fig.add_trace(go.Scatter3d(
+                    x=[c[0] for c in transformed_coords],
+                    y=[c[1] for c in transformed_coords],
+                    z=[c[2] for c in transformed_coords],
+                    mode='markers',
+                    marker=dict(size=4, color='red', opacity=0.8),
+                    text=hover_texts,
+                    hoverinfo='text',
+                    name="Prime Pairs"
+                ))
+            else:
+                # 2D Scatter plot
+                self.fig.add_trace(go.Scatter(
+                    x=[c[0] for c in transformed_coords],
+                    y=[c[1] for c in transformed_coords],
+                    mode='markers',
+                    marker=dict(size=6, color='red', opacity=0.8),
+                    text=hover_texts,
+                    hoverinfo='text',
+                    name="Prime Pairs"
+                ))
+            
             # Add lines if enabled
             if self.show_lines.get():
-                groups = shared_factors(coords).values()
+                groups = group_by_sum(enhanced_coords).values()
                 for group in groups:
                     if len(group) > 1:
-                        # Transform group coordinates while maintaining grouping
+                        # Transform group coordinates
                         transformed_group = self.transform_group_coordinates(group)
                         
                         # Create connections between consecutive points in the group
@@ -368,28 +435,49 @@ class GoldbachGUI:
                             p1 = transformed_group[i]
                             p2 = transformed_group[i + 1]
                             
-                            self.fig.add_trace(go.Scatter3d(
-                                x=[p1[0], p2[0]],
-                                y=[p1[1], p2[1]],
-                                z=[p1[2], p2[2]],
-                                mode='lines',
-                                line=dict(color='black', width=1),
-                                hoverinfo='none',
-                                name="Connections"
-                            ))
+                            if dimensions == "3D":
+                                # 3D Lines
+                                self.fig.add_trace(go.Scatter3d(
+                                    x=[p1[0], p2[0]],
+                                    y=[p1[1], p2[1]],
+                                    z=[p1[2], p2[2]],
+                                    mode='lines',
+                                    line=dict(color='black', width=1),
+                                    hoverinfo='none',
+                                    name="Connections"
+                                ))
+                            else:
+                                # 2D Lines
+                                self.fig.add_trace(go.Scatter(
+                                    x=[p1[0], p2[0]],
+                                    y=[p1[1], p2[1]],
+                                    mode='lines',
+                                    line=dict(color='black', width=1),
+                                    hoverinfo='none',
+                                    name="Connections"
+                                ))
 
-            # Layout with axis titles based on user selection
-            self.fig.update_layout(
-                title=f"Goldbach's Prime Table (Sums ≤ {sum_limit_val})",
-                scene=dict(
+            # Layout configuration
+            layout_config = {
+                'title': f"Goldbach Visualization (Sums ≤ {sum_limit_val})",
+                'width': 900,
+                'height': 700,
+                'showlegend': False
+            }
+            
+            if dimensions == "3D":
+                # 3D layout
+                layout_config['scene'] = dict(
                     xaxis_title=self.x_axis.get(),
                     yaxis_title=self.y_axis.get(),
                     zaxis_title=self.z_axis.get()
-                ),
-                width=900,
-                height=700,
-                showlegend=False
-            )
+                )
+            else:
+                # 2D layout
+                layout_config['xaxis_title'] = self.x_axis.get()
+                layout_config['yaxis_title'] = self.y_axis.get()
+            
+            self.fig.update_layout(**layout_config)
             
             # Save plot
             if not create_directory(os.path.dirname(self.html_path.get())):
