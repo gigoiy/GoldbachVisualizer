@@ -22,7 +22,7 @@ Features:
 # Helper functions remain the same until shared_factors()
 
 def create_directory(path):
-    """Create directory if it doesn't exist with error handling"""
+    # Create directory if it doesn't exist with error handling
     try:
         os.makedirs(path, exist_ok=True)
         return True
@@ -31,7 +31,7 @@ def create_directory(path):
         return False
 
 def save_dataframe(df, filepath):
-    """Save DataFrame to CSV with error handling"""
+    # Save DataFrame to CSV with error handling
     try:
         df.to_csv(filepath, index=False)
         print(f"Successfully saved data to {filepath}")
@@ -42,7 +42,7 @@ def save_dataframe(df, filepath):
         return False
 
 def save_plot(fig, filepath):
-    """Save Plotly figure to HTML with error handling"""
+    # Save Plotly figure to HTML with error handling
     try:
         fig.write_html(filepath)
         print(f"Successfully saved plot to {filepath}")
@@ -95,7 +95,7 @@ def goldbachs_calculation(primelist, max_sum):
     return coords
 
 def enhance_coordinates(coords, primes):
-    """Enhance coordinates with index positions and duplicate counts"""
+    # Enhance coordinates with index positions and duplicate counts
     # Create prime to index mapping
     prime_to_index = {p: i+1 for i, p in enumerate(primes)}
     
@@ -115,7 +115,7 @@ def enhance_coordinates(coords, primes):
     return enhanced
 
 def group_by_sum(enhanced_coords):
-    """Group coordinates by sum value"""
+    # Group coordinates by sum value
     groups = {}
     try:
         for coord in enhanced_coords:
@@ -227,7 +227,7 @@ class GoldbachGUI:
         self.toggle_z_axis()
     
     def set_default_paths(self):
-        """Set default save paths based on current directory"""
+        # Set default save paths based on current directory
         if getattr(sys, 'frozen', False):
             BASE_DIR = sys._MEIPASS
         else:
@@ -238,14 +238,14 @@ class GoldbachGUI:
         self.html_path.set(os.path.join(default_dir, "goldbach_plot.html"))
     
     def toggle_z_axis(self, event=None):
-        """Show or hide Z axis based on dimensions selection"""
+        # Show or hide Z axis based on dimensions selection
         if self.dimensions.get() == "2D":
             self.z_combobox.config(state='disabled')
         else:
             self.z_combobox.config(state='readonly')
     
     def select_csv_path(self):
-        """Select CSV save path using file dialog"""
+        # Select CSV save path using file dialog
         file_path = filedialog.asksaveasfilename(
             defaultextension=".csv",
             filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
@@ -256,7 +256,7 @@ class GoldbachGUI:
             self.csv_path.set(file_path)
     
     def select_html_path(self):
-        """Select HTML plot save path using file dialog"""
+        # Select HTML plot save path using file dialog
         file_path = filedialog.asksaveasfilename(
             defaultextension=".html",
             filetypes=[("HTML files", "*.html"), ("All files", "*.*")],
@@ -267,7 +267,7 @@ class GoldbachGUI:
             self.html_path.set(file_path)
     
     def save_csv(self):
-        """Save the CSV file only"""
+        # Save the CSV file only
         if not hasattr(self, 'df') or self.df is None:
             messagebox.showerror("Error", "No data to save. Please generate visualization first.")
             return
@@ -280,7 +280,7 @@ class GoldbachGUI:
             messagebox.showinfo("Success", "CSV file saved successfully!")
     
     def save_plot(self):
-        """Save the plot only"""
+        # Save the plot only
         if not hasattr(self, 'fig') or self.fig is None:
             messagebox.showerror("Error", "No plot to save. Please generate visualization first.")
             return
@@ -293,7 +293,7 @@ class GoldbachGUI:
             messagebox.showinfo("Success", "Plot saved successfully!")
     
     def transform_coordinates(self, coords):
-        """Transform coordinates based on axis assignments"""
+        # Transform coordinates based on axis assignments
         axis_map = {
             "Prime1": 0,
             "Prime2": 1,
@@ -319,7 +319,7 @@ class GoldbachGUI:
         return transformed
     
     def transform_group_coordinates(self, group):
-        """Transform group coordinates while maintaining grouping by Sum"""
+        # Transform group coordinates while maintaining grouping by Sum
         axis_map = {
             "Prime1": 0,
             "Prime2": 1,
@@ -345,7 +345,7 @@ class GoldbachGUI:
         return transformed
     
     def generate(self):
-        """Main function to generate the visualization"""
+        # Main function to generate the visualization
         try:
             self.status_var.set("Generating primes...")
             self.root.update()
