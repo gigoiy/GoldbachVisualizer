@@ -15,6 +15,9 @@
 2. Depending on your operating system, run the proper executable `goldbach_plot`
 3. Start experimenting with the many different and new ways that we can visualize Goldbach's Conjecture!
 
+## Program Architecture
+![Architecture Diagram](assets/GoldbachVisualizerArchitectureDiagram.png)
+
 ## GUI Breakdown
 
 ![GUI Parameters Page](assets/GUIParametersPage.png)
