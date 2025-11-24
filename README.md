@@ -18,6 +18,30 @@
 ## Program Architecture
 ![Architecture Diagram](assets/GoldbachVisualizerArchitectureDiagram.png)
 
+## Performance Notes
+
+**Hardware Used**
+
+- **GPU:** Nvidia RTX 4070
+- **Memory:** 32 GB (4x8 GB) DDR4 RAM @ 3200 MHz
+- **CPU:** AMD Ryzen 7 5700X3D @ 3.00 GHz
+
+*Used default parameters for visualizations for all testing except for Max Tested Values*
+
+**CPU Usage:** ~15 %  
+
+**Memory Usage:** ~300 MB  
+
+**Latency Between Calculations:** 1.17 seconds  
+
+**Max Tested Values:**  
+
+*Only parameter changed from default parameters is Maximum Sum*
+- **Maximum Sum > 400:** Plot render noticeably slows down
+- **Maximum Sum > 700:** Plot render noticeably lags
+- **Maximum Sum > 900:** Plot render either unuseably lags or makes the render unresponsive all-together
+- **Breaking Point:** Successfully generated at `Maximum Sum = 1000`, failed at `Maximum Sum = 1100`
+
 ## GUI Breakdown
 
 ![GUI Parameters Page](assets/GUIParametersPage.png)
@@ -43,10 +67,16 @@
 
 ![2D and Max Sum Demo](assets/2DandMaxSumDemo.gif)
 
-### Saving Plots and CSVs
+## Saving Plots and CSVs
+
+### Setting Save File Paths
 
 ![Setting Save File Paths Demo](assets/SettingSaveFilePathsDemo.gif)
 
+### Saving Both Files at the Same Time
+
 ![Saving Both Files Demo](assets/SavingBothFilesDemo.gif)
+
+### Saving Each File Seperately
 
 ![Saving Files Seperately Demo](assets/SavingFilesSeperately.gif)
